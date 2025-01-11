@@ -8,7 +8,6 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
-from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -25,8 +24,8 @@ parser.add_argument(
 parser.add_argument(
     "--max-emails",
     type=int,
-    default=10,
-    help="Maximum number of emails to download (default: 10)",
+    default=1000,
+    help="Maximum number of emails to download (default: 1000)",
 )
 args = parser.parse_args()
 
@@ -43,7 +42,7 @@ class Email(Base):
     subject = Column(String)
     body = Column(String)
     timestamp = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
-    attachment_types = Column(JSON)  # To allow for an arbitrary number of attachments
+    attachment_types = Column(String)  # Comma-separated list of attachment types
 
 
 Base.metadata.create_all(engine)
@@ -81,7 +80,7 @@ def extract_attachment_types(parts):
                 1
             ]  # Get the extension (e.g., .pdf)
             attachment_types.append(file_extension if file_extension else "unknown")
-    return attachment_types
+    return ",".join(attachment_types) if attachment_types else ""
 
 
 def extract_message_data(service, message_id):
@@ -103,7 +102,7 @@ def extract_message_data(service, message_id):
     body_text = extract_message_body(payload)
 
     # Check for attachments and extract file types
-    attachment_types = []
+    attachment_types = ""
     if "parts" in payload:
         attachment_types = extract_attachment_types(payload["parts"])
 
@@ -178,12 +177,8 @@ def main():
         session.add_all(all_emails)
         session.commit()
 
-    # Fetch and display emails
-    for email in session.query(Email).all():
-        print(email.id, email.sender, email.subject)
-
+    
     session.close()
-
 
 if __name__ == "__main__":
     main()
