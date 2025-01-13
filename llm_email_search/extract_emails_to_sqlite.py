@@ -43,7 +43,7 @@ class Email(Base):
         sender (str): Email address of the sender
         subject (str): Subject line of the email
         body (str): Full text content of the email
-        timestamp (datetime): When the email was sent/received
+        timestamp (int): Epoch timestamp in milliseconds
         attachment_types (str): Comma-separated list of file extensions for any attachments
     """
     __tablename__ = "emails"
@@ -51,8 +51,8 @@ class Email(Base):
     sender = Column(String, nullable=False)
     subject = Column(String)
     body = Column(String)
-    timestamp = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
-    attachment_types = Column(String)  # Comma-separated list of attachment types
+    timestamp = Column(Integer, nullable=False)  # Store as epoch milliseconds
+    attachment_types = Column(String)
 
 
 Base.metadata.create_all(engine)
@@ -132,29 +132,20 @@ def extract_message_data(service, message_id):
             - attachment_types: Comma-separated list of attachment extensions
             - timestamp: Datetime object of when message was sent/received
     """
-    msg = (
-        service.users()
-        .messages()
-        .get(userId="me", id=message_id, format="full")
-        .execute()
-    )
+    msg = service.users().messages().get(userId="me", id=message_id, format="full").execute()
     payload = msg["payload"]
     headers = payload.get("headers", [])
 
-    # Extract sender and subject
     sender = get_header(headers, "From")
     subject = get_header(headers, "Subject")
-
-    # Extract email body
     body_text = extract_message_body(payload)
-
-    # Check for attachments and extract file types
+    
     attachment_types = ""
     if "parts" in payload:
         attachment_types = extract_attachment_types(payload["parts"])
 
-    # Extract timestamp from internalDate (milliseconds since epoch)
-    timestamp = datetime.fromtimestamp(int(msg["internalDate"]) / 1000, UTC)
+    # Store raw epoch timestamp in milliseconds
+    timestamp = int(msg["internalDate"])  # Already in milliseconds
 
     return {
         "sender": sender,

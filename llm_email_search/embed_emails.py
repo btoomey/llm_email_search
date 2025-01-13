@@ -52,10 +52,7 @@ def main():
             {
                 "sender": email.sender,
                 "subject": email.subject,
-                "timestamp": str(
-                    email.timestamp
-                ),  # TO-DO: Decide whether we just want to go back to epoch time for everything
-                # Chroma doesn't support datetime objects, so we need to convert to string for now
+                "timestamp": str(email.timestamp),  # Convert epoch milliseconds to string
                 "attachment_types": email.attachment_types,
             }
         )
