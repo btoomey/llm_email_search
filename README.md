@@ -19,8 +19,9 @@ A repository that allows the user to search their emails with natural language q
     - `--sql-path` (path to SQLite database, set to `emails.db` by default)
 4. Run `poetry run python llm_email_search/run_query.py` to run a query on the vector database. Available arguments: 
     - `--embeddings-path` (path to vector database, set to `emails_embeddings.db` by default)
-    - `--num-results` (number of results to return, set to `10` by default)
+    - `--num-results` (number of results to return, set to `2` by default)
     - `query` (query text, no default value)
 
 ## Notes
 - Currently, the `run_query.py` script only supports the `sentence-transformers/all-MiniLM-L6-v2` model. Other embeddings are on the roadmap but not yet implemented.
+- The codebase currently performs a direct semantic search based on your search string. A future version will support a more complex query system that allows for more complex queries (eg. "emails from John that contain an image attachment and were sent in the last week").
