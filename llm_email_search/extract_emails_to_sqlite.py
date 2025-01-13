@@ -36,6 +36,16 @@ session = Session()
 
 
 class Email(Base):
+    """SQLAlchemy model representing an email in the database.
+    
+    Attributes:
+        id (int): Primary key identifier for the email
+        sender (str): Email address of the sender
+        subject (str): Subject line of the email
+        body (str): Full text content of the email
+        timestamp (datetime): When the email was sent/received
+        attachment_types (str): Comma-separated list of file extensions for any attachments
+    """
     __tablename__ = "emails"
     id = Column(Integer, primary_key=True)
     sender = Column(String, nullable=False)
@@ -49,7 +59,15 @@ Base.metadata.create_all(engine)
 
 
 def get_header(headers, name):
-    """Helper function to extract a specific header."""
+    """Extract a specific header value from a list of email headers.
+    
+    Args:
+        headers (list): List of header dictionaries containing 'name' and 'value' keys
+        name (str): Name of the header to find (case-insensitive)
+    
+    Returns:
+        str: Value of the requested header if found, None otherwise
+    """
     for header in headers:
         if header["name"].lower() == name.lower():
             return header["value"]
@@ -57,7 +75,16 @@ def get_header(headers, name):
 
 
 def extract_message_body(payload):
-    """Extract the text body of the email."""
+    """Extract the text content from an email message payload.
+    
+    Attempts to find and decode either plain text or HTML content from the message payload.
+    
+    Args:
+        payload (dict): The message payload portion of a Gmail API message response
+    
+    Returns:
+        str: Decoded text content of the email, or "No body text found" if no content could be extracted
+    """
     if "parts" in payload:
         for part in payload["parts"]:
             if part["mimeType"] == "text/plain" and "body" in part:
@@ -70,7 +97,14 @@ def extract_message_body(payload):
 
 
 def extract_attachment_types(parts):
-    """Extract the file types of attachments from the email parts."""
+    """Extract file extensions from email attachments.
+    
+    Args:
+        parts (list): List of message parts from a Gmail API message
+    
+    Returns:
+        str: Comma-separated list of file extensions (e.g., ".pdf,.txt"), or empty string if no attachments
+    """
     attachment_types = []
     for part in parts:
         if part.get("filename"):  # If there is a filename, it's an attachment
@@ -84,7 +118,20 @@ def extract_attachment_types(parts):
 
 
 def extract_message_data(service, message_id):
-    """Extract sender, subject, body text, and attachment types from an email."""
+    """Extract relevant data from a Gmail message.
+    
+    Args:
+        service: Authenticated Gmail API service object
+        message_id (str): ID of the Gmail message to process
+    
+    Returns:
+        dict: Contains extracted message data with keys:
+            - sender: Email address of sender
+            - subject: Email subject line
+            - body: Email content
+            - attachment_types: Comma-separated list of attachment extensions
+            - timestamp: Datetime object of when message was sent/received
+    """
     msg = (
         service.users()
         .messages()
@@ -119,7 +166,14 @@ def extract_message_data(service, message_id):
 
 
 def authenticate():
-    """Authenticate with Gmail API and return credentials."""
+    """Authenticate with the Gmail API.
+    
+    Attempts to load cached credentials from token.pickle, refreshes expired credentials,
+    or initiates OAuth2 flow to get new credentials if needed.
+    
+    Returns:
+        google.oauth2.credentials.Credentials: Valid credentials for accessing Gmail API
+    """
     creds = None
     # Load previously saved credentials
     if os.path.exists("token.pickle"):

@@ -28,14 +28,13 @@ def main():
     )
     args = parser.parse_args()
 
-    # Initialize SQLAlchemy session
     engine = create_engine(f"sqlite:///{args.sql_path}")
     Session = sessionmaker(bind=engine)
     session = Session()
 
     client = chromadb.PersistentClient(path=args.embeddings_path)
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=args.model_name #, trust_remote_code=True
+        model_name=args.model_name
     )
     collection = client.get_or_create_collection(
         "test_emails", embedding_function=sentence_transformer_ef
