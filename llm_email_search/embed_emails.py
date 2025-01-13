@@ -1,3 +1,4 @@
+import argparse
 import chromadb
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -6,14 +7,35 @@ from chromadb.utils import embedding_functions
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Embed emails into vector database")
+    parser.add_argument(
+        "--sql-path",
+        type=str,
+        default="emails.db",
+        help="SQLite database file path (default: emails.db)",
+    )
+    parser.add_argument(
+        "--embeddings-path",
+        type=str,
+        default="embedded_emails.db",
+        help="Path to store embeddings database (default: embedded_emails.db)",
+    )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Name of sentence transformer model (default: sentence-transformers/all-MiniLM-L6-v2)",
+    )
+    args = parser.parse_args()
+
     # Initialize SQLAlchemy session
-    engine = create_engine("sqlite:///emails.db")
+    engine = create_engine(f"sqlite:///{args.sql_path}")
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    client = chromadb.PersistentClient(path="embedded_emails.db")
+    client = chromadb.PersistentClient(path=args.embeddings_path)
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"#, trust_remote_code=True
+        model_name=args.model_name #, trust_remote_code=True
     )
     collection = client.get_or_create_collection(
         "test_emails", embedding_function=sentence_transformer_ef
