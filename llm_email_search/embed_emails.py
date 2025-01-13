@@ -43,13 +43,6 @@ def main():
         ids=ids,
     )
 
-    results = collection.query(
-        query_texts=["Good snowboarding days are coming"],
-        n_results=2,
-    )
-
-    print(results)
-
 
 if __name__ == "__main__":
     main()
