@@ -169,3 +169,16 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# We don't want to commit the user-generated email db
+*.db
+# We also don't want to commit the ChromaDB
+*.chroma
+
+# We don't want to commit the credentials and token
+credentials.json
+token.json
+token.pickle
+
+# We don't want to commit the .DS_Store
+.DS_Store

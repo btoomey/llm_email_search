@@ -15,9 +15,15 @@ def main():
         default=2,
         help="Number of results to return (default: 2)"
     )
+    parser.add_argument(
+        "--embeddings-path",
+        type=str,
+        default="embedded_emails.db",
+        help="Path to store embeddings database (default: embedded_emails.db)",
+    )
     args = parser.parse_args()
 
-    client = chromadb.PersistentClient(path="embedded_emails.db")
+    client = chromadb.PersistentClient(path=args.embeddings_path)
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name="sentence-transformers/all-MiniLM-L6-v2"#, trust_remote_code=True
     )

@@ -1,4 +1,5 @@
 import argparse
+import os
 import chromadb
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -27,6 +28,8 @@ def main():
         help="Name of sentence transformer model (default: sentence-transformers/all-MiniLM-L6-v2)",
     )
     args = parser.parse_args()
+    if not os.path.exists(args.sql_path):
+        raise FileNotFoundError(f"SQLite database file not found at {args.sql_path}")
 
     engine = create_engine(f"sqlite:///{args.sql_path}")
     Session = sessionmaker(bind=engine)
