@@ -1,8 +1,13 @@
 import argparse
+import os
 import chromadb
 from chromadb.utils import embedding_functions
 
 def run_query(query, num_results=2, embeddings_path="embedded_emails.db"):
+    # Check if the embeddings database exists
+    if not os.path.exists(embeddings_path):
+        raise FileNotFoundError(f"Embeddings database not found at {embeddings_path}")
+
     client = chromadb.PersistentClient(path=embeddings_path)
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name="sentence-transformers/all-MiniLM-L6-v2"

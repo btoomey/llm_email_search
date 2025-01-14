@@ -23,6 +23,20 @@ dependencies = [
     "einops (>=0.8.0,<0.9.0)"
 ]
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-mock = "^3.12.0"
+
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+
+[tool.poetry]
+packages = [
+    { include = "llm_email_search" }
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

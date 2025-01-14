@@ -3,7 +3,7 @@ import os
 import chromadb
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from extract_emails_to_sqlite import Email
+from llm_email_search.extract_emails_to_sqlite import Email
 from chromadb.utils import embedding_functions
 
 
