@@ -4,6 +4,10 @@ import os
 import chromadb
 from chromadb.utils import embedding_functions
 
+from llm_email_search.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 def run_query(query: str, num_results: int = 2, embeddings_path: str = "embedded_emails.db") -> dict:
     """Search emails using semantic similarity to a query string.
     
@@ -23,8 +27,10 @@ def run_query(query: str, num_results: int = 2, embeddings_path: str = "embedded
     """
     # Check if the embeddings database exists
     if not os.path.exists(embeddings_path):
+        logger.error(f"Embeddings database not found at {embeddings_path}")
         raise FileNotFoundError(f"Embeddings database not found at {embeddings_path}")
 
+    logger.info(f"Connecting to embeddings database at {embeddings_path}")
     client = chromadb.PersistentClient(path=embeddings_path)
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -33,11 +39,13 @@ def run_query(query: str, num_results: int = 2, embeddings_path: str = "embedded
         "test_emails", embedding_function=sentence_transformer_ef
     )
     
+    logger.info(f"Running query: '{query}' with {num_results} results requested")
     results = collection.query(
         query_texts=[query],
         n_results=num_results,
     )
-
+    
+    logger.info(f"Found {len(results['ids'][0])} matching results")
     return results
 
 def main():
@@ -61,13 +69,17 @@ def main():
     )
     args = parser.parse_args()
 
-    results = run_query(
-        query=args.query,
-        num_results=args.num_results,
-        embeddings_path=args.embeddings_path
-    )
-    
-    print(results)
+    try:
+        results = run_query(
+            query=args.query,
+            num_results=args.num_results,
+            embeddings_path=args.embeddings_path
+        )
+        logger.info("Query results:")
+        logger.info(results)
+    except Exception as e:
+        logger.error(f"Error running query: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     main()

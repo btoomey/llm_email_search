@@ -7,11 +7,14 @@ from typing import Dict, List, Optional, Union
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from llm_email_search.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
@@ -99,7 +102,7 @@ def extract_attachment_types(parts: List[Dict]) -> str:
     return ",".join(attachment_types) if attachment_types else ""
 
 
-def extract_message_data(service: Any, message_id: str) -> Dict[str, Union[str, int]]:
+def extract_message_data(service: Resource, message_id: str) -> Dict[str, Union[str, int]]:
     """Extract relevant data from a Gmail message.
 
     Args:
@@ -189,6 +192,7 @@ def extract_emails(max_emails: int = 1000, database: str = "emails.db") -> None:
         service.users().messages().list(userId="me", maxResults=max_emails).execute()
     )
     messages = results.get("messages", [])
+    logger.info(f"Found {len(messages)} emails")
     all_emails = []
     for message in messages:
         message_data = extract_message_data(service, message["id"])
@@ -207,6 +211,7 @@ def extract_emails(max_emails: int = 1000, database: str = "emails.db") -> None:
         if not existing_email:
             all_emails.append(Email(**message_data))
 
+    logger.info(f"Found {len(all_emails)} new emails to add to database")
     if all_emails:
         session.add_all(all_emails)
         session.commit()

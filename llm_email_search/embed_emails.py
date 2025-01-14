@@ -7,6 +7,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from llm_email_search.extract_emails_to_sqlite import Email
+from llm_email_search.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def embed_emails(sql_path: str, embeddings_path: str, model_name: str) -> None:
@@ -43,13 +46,14 @@ def embed_emails(sql_path: str, embeddings_path: str, model_name: str) -> None:
             }
         )
         ids.append(str(email.id))
+    logger.info(f"Embedding {len(documents)} emails")
 
     collection.add(
         documents=documents,
         metadatas=metadatas,
         ids=ids,
     )
-
+    logger.info(f"Embedding is complete. Collection now contains {collection.count()} embedded emails")
 
 def main():
     parser = argparse.ArgumentParser(description="Embed emails into vector database")
