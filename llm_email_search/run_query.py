@@ -1,6 +1,27 @@
 import argparse
+import os
 import chromadb
 from chromadb.utils import embedding_functions
+
+def run_query(query, num_results=2, embeddings_path="embedded_emails.db"):
+    # Check if the embeddings database exists
+    if not os.path.exists(embeddings_path):
+        raise FileNotFoundError(f"Embeddings database not found at {embeddings_path}")
+
+    client = chromadb.PersistentClient(path=embeddings_path)
+    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+    collection = client.get_or_create_collection(
+        "test_emails", embedding_function=sentence_transformer_ef
+    )
+
+    results = collection.query(
+        query_texts=[query],
+        n_results=num_results,
+    )
+
+    return results
 
 def main():
     parser = argparse.ArgumentParser(description="Search emails using semantic search")
@@ -23,21 +44,13 @@ def main():
     )
     args = parser.parse_args()
 
-    client = chromadb.PersistentClient(path=args.embeddings_path)
-    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"#, trust_remote_code=True
+    results = run_query(
+        query=args.query,
+        num_results=args.num_results,
+        embeddings_path=args.embeddings_path
     )
-    collection = client.get_or_create_collection(
-        "test_emails", embedding_function=sentence_transformer_ef
-    )
-
-    results = collection.query(
-        query_texts=[args.query],
-        n_results=args.num_results,
-    )
-
+    
     print(results)
-
 
 if __name__ == "__main__":
     main()

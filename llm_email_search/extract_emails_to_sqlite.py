@@ -14,30 +14,16 @@ from sqlalchemy.orm import sessionmaker
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-parser = argparse.ArgumentParser(description="Download emails to SQLite database")
-parser.add_argument(
-    "--database",
-    type=str,
-    default="emails.db",
-    help="SQLite database file path (default: emails.db)",
-)
-parser.add_argument(
-    "--max-emails",
-    type=int,
-    default=1000,
-    help="Maximum number of emails to download (default: 1000)",
-)
-args = parser.parse_args()
 
 Base = declarative_base()
-engine = create_engine(f"sqlite:///{args.database}")
-Session = sessionmaker(bind=engine)
-session = Session()
+# engine = create_engine(f"sqlite:///{args.database}")
+# Session = sessionmaker(bind=engine)
+# session = Session()
 
 
 class Email(Base):
     """SQLAlchemy model representing an email in the database.
-    
+
     Attributes:
         id (int): Primary key identifier for the email
         sender (str): Email address of the sender
@@ -46,6 +32,7 @@ class Email(Base):
         timestamp (int): Epoch timestamp in milliseconds
         attachment_types (str): Comma-separated list of file extensions for any attachments
     """
+
     __tablename__ = "emails"
     id = Column(Integer, primary_key=True)
     sender = Column(String, nullable=False)
@@ -55,16 +42,16 @@ class Email(Base):
     attachment_types = Column(String)
 
 
-Base.metadata.create_all(engine)
+# Base.metadata.create_all(engine)
 
 
 def get_header(headers, name):
     """Extract a specific header value from a list of email headers.
-    
+
     Args:
         headers (list): List of header dictionaries containing 'name' and 'value' keys
         name (str): Name of the header to find (case-insensitive)
-    
+
     Returns:
         str: Value of the requested header if found, None otherwise
     """
@@ -76,12 +63,12 @@ def get_header(headers, name):
 
 def extract_message_body(payload):
     """Extract the text content from an email message payload.
-    
+
     Attempts to find and decode either plain text or HTML content from the message payload.
-    
+
     Args:
         payload (dict): The message payload portion of a Gmail API message response
-    
+
     Returns:
         str: Decoded text content of the email, or "No body text found" if no content could be extracted
     """
@@ -98,10 +85,10 @@ def extract_message_body(payload):
 
 def extract_attachment_types(parts):
     """Extract file extensions from email attachments.
-    
+
     Args:
         parts (list): List of message parts from a Gmail API message
-    
+
     Returns:
         str: Comma-separated list of file extensions (e.g., ".pdf,.txt"), or empty string if no attachments
     """
@@ -119,11 +106,11 @@ def extract_attachment_types(parts):
 
 def extract_message_data(service, message_id):
     """Extract relevant data from a Gmail message.
-    
+
     Args:
         service: Authenticated Gmail API service object
         message_id (str): ID of the Gmail message to process
-    
+
     Returns:
         dict: Contains extracted message data with keys:
             - sender: Email address of sender
@@ -132,14 +119,19 @@ def extract_message_data(service, message_id):
             - attachment_types: Comma-separated list of attachment extensions
             - timestamp: Datetime object of when message was sent/received
     """
-    msg = service.users().messages().get(userId="me", id=message_id, format="full").execute()
+    msg = (
+        service.users()
+        .messages()
+        .get(userId="me", id=message_id, format="full")
+        .execute()
+    )
     payload = msg["payload"]
     headers = payload.get("headers", [])
 
     sender = get_header(headers, "From")
     subject = get_header(headers, "Subject")
     body_text = extract_message_body(payload)
-    
+
     attachment_types = ""
     if "parts" in payload:
         attachment_types = extract_attachment_types(payload["parts"])
@@ -158,10 +150,10 @@ def extract_message_data(service, message_id):
 
 def authenticate():
     """Authenticate with the Gmail API.
-    
+
     Attempts to load cached credentials from token.pickle, refreshes expired credentials,
     or initiates OAuth2 flow to get new credentials if needed.
-    
+
     Returns:
         google.oauth2.credentials.Credentials: Valid credentials for accessing Gmail API
     """
@@ -186,7 +178,12 @@ def authenticate():
     return creds
 
 
-def main():
+def extract_emails(max_emails=1000, database="emails.db"):
+    engine = create_engine(f"sqlite:///{database}")
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    Base.metadata.create_all(engine)
+
     creds = authenticate()
 
     # Build the Gmail service
@@ -194,10 +191,7 @@ def main():
 
     # Fetch messages
     results = (
-        service.users()
-        .messages()
-        .list(userId="me", maxResults=args.max_emails)
-        .execute()
+        service.users().messages().list(userId="me", maxResults=max_emails).execute()
     )
     messages = results.get("messages", [])
     all_emails = []
@@ -222,8 +216,26 @@ def main():
         session.add_all(all_emails)
         session.commit()
 
-    
     session.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Download emails to SQLite database")
+    parser.add_argument(
+        "--database",
+        type=str,
+        default="emails.db",
+        help="SQLite database file path (default: emails.db)",
+    )
+    parser.add_argument(
+        "--max_emails",
+        type=int,
+        default=1000,
+        help="Maximum number of emails to download (default: 1000)",
+    )
+    args = parser.parse_args()
+    extract_emails(max_emails=args.max_emails)
+
 
 if __name__ == "__main__":
     main()
