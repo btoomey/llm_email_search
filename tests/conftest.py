@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from llm_email_search.extract_emails_to_sqlite import Base, Email
+import logging
 
 MOCK_EMAIL = {
     "id": "12345",
@@ -23,6 +24,11 @@ MOCK_EMAIL = {
         ],
     },
 }
+
+@pytest.fixture(autouse=True)
+def setup_logging():
+    """Configure logging for tests."""
+    logging.getLogger().setLevel(logging.DEBUG)
 
 
 @pytest.fixture
@@ -75,3 +81,9 @@ def sample_db_with_emails(temp_db_path):
     session.close()
 
     return temp_db_path
+
+
+@pytest.fixture(autouse=True)
+def setup_logging():
+    """Configure logging for tests."""
+    logging.getLogger().setLevel(logging.DEBUG)

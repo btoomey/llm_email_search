@@ -1,24 +1,25 @@
+import argparse
 import base64
 import os
 import pickle
-from datetime import UTC, datetime
-import argparse
+from typing import Dict, List, Optional, Union
 
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from sqlalchemy import Column, DateTime, Integer, String, create_engine
+from googleapiclient.discovery import build, Resource
+from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from llm_email_search.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
 Base = declarative_base()
-# engine = create_engine(f"sqlite:///{args.database}")
-# Session = sessionmaker(bind=engine)
-# session = Session()
 
 
 class Email(Base):
@@ -42,10 +43,7 @@ class Email(Base):
     attachment_types = Column(String)
 
 
-# Base.metadata.create_all(engine)
-
-
-def get_header(headers, name):
+def get_header(headers: List[Dict[str, str]], name: str) -> Optional[str]:
     """Extract a specific header value from a list of email headers.
 
     Args:
@@ -61,7 +59,7 @@ def get_header(headers, name):
     return None
 
 
-def extract_message_body(payload):
+def extract_message_body(payload: Dict) -> str:
     """Extract the text content from an email message payload.
 
     Attempts to find and decode either plain text or HTML content from the message payload.
@@ -83,7 +81,7 @@ def extract_message_body(payload):
     return "No body text found."
 
 
-def extract_attachment_types(parts):
+def extract_attachment_types(parts: List[Dict]) -> str:
     """Extract file extensions from email attachments.
 
     Args:
@@ -99,12 +97,12 @@ def extract_attachment_types(parts):
             # Extract the file type (extension)
             file_extension = os.path.splitext(filename)[
                 1
-            ]  # Get the extension (e.g., .pdf)
+            ]
             attachment_types.append(file_extension if file_extension else "unknown")
     return ",".join(attachment_types) if attachment_types else ""
 
 
-def extract_message_data(service, message_id):
+def extract_message_data(service: Resource, message_id: str) -> Dict[str, Union[str, int]]:
     """Extract relevant data from a Gmail message.
 
     Args:
@@ -137,7 +135,7 @@ def extract_message_data(service, message_id):
         attachment_types = extract_attachment_types(payload["parts"])
 
     # Store raw epoch timestamp in milliseconds
-    timestamp = int(msg["internalDate"])  # Already in milliseconds
+    timestamp = int(msg["internalDate"])
 
     return {
         "sender": sender,
@@ -148,7 +146,7 @@ def extract_message_data(service, message_id):
     }
 
 
-def authenticate():
+def authenticate() -> Credentials:
     """Authenticate with the Gmail API.
 
     Attempts to load cached credentials from token.pickle, refreshes expired credentials,
@@ -178,7 +176,7 @@ def authenticate():
     return creds
 
 
-def extract_emails(max_emails=1000, database="emails.db"):
+def extract_emails(max_emails: int = 1000, database: str = "emails.db") -> None:
     engine = create_engine(f"sqlite:///{database}")
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -194,6 +192,7 @@ def extract_emails(max_emails=1000, database="emails.db"):
         service.users().messages().list(userId="me", maxResults=max_emails).execute()
     )
     messages = results.get("messages", [])
+    logger.info(f"Found {len(messages)} emails")
     all_emails = []
     for message in messages:
         message_data = extract_message_data(service, message["id"])
@@ -212,6 +211,7 @@ def extract_emails(max_emails=1000, database="emails.db"):
         if not existing_email:
             all_emails.append(Email(**message_data))
 
+    logger.info(f"Found {len(all_emails)} new emails to add to database")
     if all_emails:
         session.add_all(all_emails)
         session.commit()
