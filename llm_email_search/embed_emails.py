@@ -1,13 +1,15 @@
 import argparse
 import os
+
 import chromadb
+from chromadb.utils import embedding_functions
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from llm_email_search.extract_emails_to_sqlite import Email
-from chromadb.utils import embedding_functions
 
 
-def embed_emails(sql_path, embeddings_path, model_name):
+def embed_emails(sql_path: str, embeddings_path: str, model_name: str) -> None:
     """Embed emails from SQLite database into vector database.
     
     Args:

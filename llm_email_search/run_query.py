@@ -1,9 +1,26 @@
 import argparse
 import os
+
 import chromadb
 from chromadb.utils import embedding_functions
 
-def run_query(query, num_results=2, embeddings_path="embedded_emails.db"):
+def run_query(query: str, num_results: int = 2, embeddings_path: str = "embedded_emails.db") -> dict:
+    """Search emails using semantic similarity to a query string.
+    
+    Args:
+        query (str): The search query text to match against email content
+        num_results (int, optional): Number of most similar results to return. Defaults to 2.
+        embeddings_path (str, optional): Path to ChromaDB embeddings database. Defaults to "embedded_emails.db".
+    
+    Returns:
+        dict: Query results containing:
+            - ids: List of email IDs for matches
+            - distances: List of similarity scores
+            - metadatas: List of email metadata (sender, subject, timestamp, attachments)
+            
+    Raises:
+        FileNotFoundError: If embeddings database not found at specified path
+    """
     # Check if the embeddings database exists
     if not os.path.exists(embeddings_path):
         raise FileNotFoundError(f"Embeddings database not found at {embeddings_path}")
@@ -15,7 +32,7 @@ def run_query(query, num_results=2, embeddings_path="embedded_emails.db"):
     collection = client.get_or_create_collection(
         "test_emails", embedding_function=sentence_transformer_ef
     )
-
+    
     results = collection.query(
         query_texts=[query],
         n_results=num_results,
