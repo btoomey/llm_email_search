@@ -63,13 +63,19 @@ with tab3:
     num_results = st.number_input(
         "Number of results to return", min_value=1, max_value=100, value=10
     )
+    embeddings_path = st.text_input(
+        "Path to the embeddings", value="embeddings.db", key="embeddings_path"
+    )
+    model_name = st.text_input(
+        "Name of embedding model to use", value="sentence-transformers/all-MiniLM-L6-v2", key="model_name"
+    )
     if st.button("Search Emails"):
         if not query:
             st.warning("Please enter a query to search for")
         else:
             with st.spinner("Searching emails..."):
                 try:
-                    results = run_query(query, num_results)
+                    results = run_query(query, num_results, embeddings_path, model_name)
                     st.success("Emails searched successfully")
                     if results and "documents" in results:
                         with st.expander("Results", expanded=True):
