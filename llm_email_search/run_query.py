@@ -8,20 +8,26 @@ from llm_email_search.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-def run_query(query: str, num_results: int = 2, embeddings_path: str = "embedded_emails.db") -> dict:
+
+def run_query(
+    query: str,
+    num_results: int = 2,
+    embeddings_path: str = "embedded_emails.db",
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+) -> dict:
     """Search emails using semantic similarity to a query string.
-    
+
     Args:
         query (str): The search query text to match against email content
         num_results (int, optional): Number of most similar results to return. Defaults to 2.
         embeddings_path (str, optional): Path to ChromaDB embeddings database. Defaults to "embedded_emails.db".
-    
+
     Returns:
         dict: Query results containing:
             - ids: List of email IDs for matches
             - distances: List of similarity scores
             - metadatas: List of email metadata (sender, subject, timestamp, attachments)
-            
+
     Raises:
         FileNotFoundError: If embeddings database not found at specified path
     """
@@ -33,33 +39,30 @@ def run_query(query: str, num_results: int = 2, embeddings_path: str = "embedded
     logger.info(f"Connecting to embeddings database at {embeddings_path}")
     client = chromadb.PersistentClient(path=embeddings_path)
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+        model_name=model_name
     )
     collection = client.get_or_create_collection(
         "test_emails", embedding_function=sentence_transformer_ef
     )
-    
+
     logger.info(f"Running query: '{query}' with {num_results} results requested")
     results = collection.query(
         query_texts=[query],
         n_results=num_results,
     )
-    
+
     logger.info(f"Found {len(results['ids'][0])} matching results")
     return results
 
+
 def main():
     parser = argparse.ArgumentParser(description="Search emails using semantic search")
-    parser.add_argument(
-        "query",
-        type=str,
-        help="Search query text"
-    )
+    parser.add_argument("query", type=str, help="Search query text")
     parser.add_argument(
         "--num-results",
         type=int,
         default=2,
-        help="Number of results to return (default: 2)"
+        help="Number of results to return (default: 2)",
     )
     parser.add_argument(
         "--embeddings-path",
@@ -67,19 +70,27 @@ def main():
         default="embedded_emails.db",
         help="Path to store embeddings database (default: embedded_emails.db)",
     )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Name of sentence transformer model (default: sentence-transformers/all-MiniLM-L6-v2)",
+    )
     args = parser.parse_args()
 
     try:
         results = run_query(
             query=args.query,
             num_results=args.num_results,
-            embeddings_path=args.embeddings_path
+            embeddings_path=args.embeddings_path,
+            model_name=args.model_name,
         )
         logger.info("Query results:")
         logger.info(results)
     except Exception as e:
         logger.error(f"Error running query: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     main()
