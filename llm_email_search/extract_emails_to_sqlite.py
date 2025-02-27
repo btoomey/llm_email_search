@@ -36,11 +36,11 @@ class Email(Base):
 
     __tablename__ = "emails"
     id = Column(Integer, primary_key=True)
-    sender = Column(String, nullable=False)
-    subject = Column(String)
-    body = Column(String)
-    timestamp = Column(Integer, nullable=False)  # Store as epoch milliseconds
-    attachment_types = Column(String)
+    sender = Column(String, nullable=True)
+    subject = Column(String, nullable=True)
+    body = Column(String, nullable=False)
+    timestamp = Column(Integer, nullable=True)  # Store as epoch milliseconds
+    attachment_types = Column(String, nullable=True)
 
 
 def get_header(headers: List[Dict[str, str]], name: str) -> Optional[str]:
